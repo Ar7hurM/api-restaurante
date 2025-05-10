@@ -21,7 +21,7 @@ conexao = mysql.connector.connect(
     host="172.18.152.213",
     user="api",
     passwd = "123",
-    database="teste"
+    database="restaurante"
 )
 
 cursor = conexao.cursor()
@@ -46,9 +46,9 @@ def read_login(request: Request, email: str, password: str):
 
 # HTML DA PÁGINA - NÃO PRECISA MAIS
     if linha_user:
-        return templates.TemplateResponse("logado.html", {"request": request, "email": email})
+        return templates.TemplateResponse("logado.html", {"request": request, "email": email}, status_code=200)
     else:
-        return templates.TemplateResponse("erro.html", {"request": request, "mensagem": "Usuário não encontrado"})
+        return templates.TemplateResponse("erro.html", {"request": request, "mensagem": "Usuário não encontrado"}, status_code=404)
 
 
 # HTML DO REGISTRO
@@ -75,9 +75,11 @@ def processar_register(request: Request, email: str, password: str, nome: str, e
 def esqueci(request: Request, email: str, password: str):
     cursor = conexao.cursor()
     cursor.execute("UPDATE usuarios SET senha = %s WHERE email = %s", (password,email))
-    cursor.close()
+    linhas_afetadas = cursor.rowcount
     conexao.commit()
-    conexao.close()
+
+    if linhas_afetadas == 0:
+        raise HTTPException(status_code=404, detail="E-mail não cadastrado")
     return {"Senha atualizada!"}
 
 
@@ -87,8 +89,6 @@ def deletar(request: Request, email: str, senha: str):
     cursor = conexao.cursor()
     cursor.execute("DELETE FROM usuarios WHERE email = %s AND senha = %s",(email,senha))
     conexao.commit()
-    conexao.close()
-    cursor.close()    
     return {"Usuário deletado"}
 
 
@@ -98,8 +98,6 @@ def adicionar_produto(request: Request, nome_produto: str, descricao: str, valor
     cursor = conexao.cursor()
     cursor.execute("INSERT INTO produtos (nome_produto, descricao, valor) VALUES (%s, %s, %s)", (nome_produto, descricao, valor))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"Produto adicionado"}
 
 @app.get("/deletep")
@@ -107,8 +105,6 @@ def deletar_produto(request: Request, nome_produto: str, valor: float):
     cursor = conexao.cursor()
     cursor.execute("DELETE FROM produtos WHERE nome_produto = %s",(nome_produto,))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return f"Produto {nome_produto} deletado!"
 
 @app.get("/atualizarp")
@@ -116,8 +112,6 @@ def atualizar_produto(request: Request, nome_produto: str, valor_produto: float)
     cursor = conexao.cursor()
     cursor.execute("UPDATE produtos SET valor = %s WHERE nome_produto = %s", (valor_produto, nome_produto))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"Valor atualizado para:",valor_produto}
 
 @app.post("/verproduto")
@@ -126,8 +120,6 @@ def visualizar_produto(request: Request, nome_produto: str):
     cursor.execute("SELECT * FROM produtos WHERE nome_produto = %s", (nome_produto,))
     resultado = cursor.fetchall()
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"produtos": resultado}
 
 # TABELA PEDIDOS   
@@ -136,8 +128,6 @@ def criar_pedido(request: Request, nome_produto: str, nome: str, id_pedido: str)
     cursor = conexao.cursor()
     cursor.execute("INSERT INTO pedidos (id_pedido, nome_produto_fk, nome_fk) VALUES (%s, %s, %s)", (id_pedido, nome_produto, nome))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"Pedido realizado"}
 
 @app.get("/deleteped")
@@ -145,8 +135,6 @@ def deletar_pedido(request: Request, id_pedido: int, nome_pedido: str):
     cursor = conexao.cursor()
     cursor.execute("DELETE FROM pedidos WHERE id_pedido = %s AND nome_fk = %s", (id_pedido, nome_pedido))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return f"O pedido de id = {id_pedido} do cliente = {nome_pedido} foi deletado"
 
 @app.get("/atualizarped")
@@ -154,18 +142,14 @@ def atualizar_pedido(request: Request, id_pedido: int, nome_produto: str, nome_p
     cursor = conexao.cursor()
     cursor.execute("UPDATE pedidos SET nome_produto_fk = %s WHERE id_pedido = %s AND nome_produto_fk = %s", (nome_produto, id_pedido, nome_produto_atual))
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return f"O pedido de id = {id_pedido} com o produto = {nome_produto_atual} foi alterado para {nome_produto}"
 
 @app.post("/visualizarped")
-def visualizar_pedido(request: Request, id_pedido: int, nome_fk: str):
+def visualizar_pedido(request: Request, id_pedido: int, nome: str):
     cursor = conexao.cursor()
-    cursor.execute("SELECT * FROM pedidos WHERE id_pedido = %s AND nome_fk = %s", (id_pedido, nome_fk))
+    cursor.execute("SELECT * FROM pedidos WHERE id_pedido = %s AND nome_fk = %s", (id_pedido, nome))
     resultado = cursor.fetchall()
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"pedidos": resultado}
 
 
@@ -177,6 +161,4 @@ def criar_tabelas(request: Request):
     cursor.execute("CREATE TABLE produtos (id_produto int NOT NULL AUTO_INCREMENT,nome_produto varchar(60) NOT NULL,descricao varchar(100) DEFAULT NULL,valor float NOT NULL,PRIMARY KEY (id_produto),UNIQUE KEY nome_produto (nome_produto))")
     cursor.execute("CREATE TABLE pedidos (id_pedido int NOT NULL,nome_produto_fk varchar(100) NOT NULL,nome_fk varchar(100) NOT NULL,KEY nome_produto_fk (nome_produto_fk),KEY nome_fk (nome_fk),CONSTRAINT pedidos_ibfk_1 FOREIGN KEY (nome_produto_fk) REFERENCES produtos (nome_produto),CONSTRAINT pedidos_ibfk_2 FOREIGN KEY (nome_fk) REFERENCES usuarios (nome))")
     conexao.commit()
-    conexao.close()
-    cursor.close()
     return {"mensagem": "Tabelas criadas com suceso!"}

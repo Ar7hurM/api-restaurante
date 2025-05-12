@@ -13,7 +13,7 @@ conexao = mysql.connector.connect(
     passwd = "123",
     database="bancoapi"
 )
-
+    
 cursor = conexao.cursor()
 
 
@@ -42,14 +42,9 @@ def login(request: Request, email: str, password: str):
 @app.post("/register")
 def register(request: Request, email: str, password: str, nome: str, endereco: str):
     cursor = conexao.cursor()    
-
-    try:
-        cursor.execute("INSERT INTO usuarios (nome, email, senha, endereco) VALUES (%s,%s,%s,%s)", (nome, email, password, endereco))
-        conexao.commit()
-        return f"Usuário {nome} cadastrado com sucesso!"
-    finally:
-        conexao.close()
-        cursor.close()
+    cursor.execute("INSERT INTO usuarios (nome, email, senha, endereco) VALUES (%s,%s,%s,%s)", (nome, email, password, endereco))
+    conexao.commit()
+    return f"Usuário {nome} cadastrado com sucesso!" 
 
 
 @app.put("/esqueci-senha")

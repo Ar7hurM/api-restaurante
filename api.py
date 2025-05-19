@@ -8,10 +8,10 @@ app = FastAPI()
 
 # CONEXÃO COM BANCO
 conexao = mysql.connector.connect(
-    host="172.18.152.213",
-    user="api",
-    passwd="123",
-    database="bancoapi"
+    host="IP",
+    user="",
+    passwd="",
+    database=""
 )
 
 cursor = conexao.cursor()

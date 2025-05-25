@@ -1,4 +1,3 @@
 # api-restaurante
-API Restaurante - Projeto  
-Feita em python com fastapi  
-Falta autorização e deploy  
+API Restaurante - Projeto API + Banco de dados 
+Feita em python com fastapi
